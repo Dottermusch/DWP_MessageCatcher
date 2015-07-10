@@ -44,49 +44,73 @@ public class getMessage extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException 
 	{
 		HttpSession session = request.getSession();
-		Message message = new Message();
-		boolean isDuplicate = false;
 		String url = "/displayMessages.jsp";
-		String name = null;
-		String messageText = null;
-		Date date = new Date();
-		Timestamp postTime = new Timestamp(date.getTime());
+		// test code
+		String action = request.getParameter("action");
 		
-		name = request.getParameter("username");
-		messageText = request.getParameter("messageContent");
-		
-		String path = request.getPathInfo();
-		
-		message.setUsername(name);
-		message.setMessage(messageText);
-		message.setPostingTime(postTime);
-		
-		if(session.getAttribute("lastRecNo") != null)
+		if (action.equals("onlyRecent"))
 		{
-			long testLong = (long)session.getAttribute("lastRecNo");
-			System.out.println("Value of last rec ID : " + testLong);
-		}
-		
-		if(session.getAttribute("lastRecNo") != null)
-		{
-			Message lastMessage = MessageDB.getMessageById((long)session.getAttribute("lastRecNo"));
+			Message recentMessage = MessageDB.getTopMessage();
+			request.setAttribute("recentMessage", recentMessage);
+			url = "/topMessage.jsp";
 			
-			if((lastMessage.getUsername().equals(message.getUsername())) && (lastMessage.getMessage().equals(message.getMessage())))
-			{
-				isDuplicate = true;				
-			}
+			
 		}
 		
-		// insert created message object only if it is not a duplicate
-		if (!isDuplicate)
+		else if (action.equals("reverseOrder"))
 		{
-			long idReturned = MessageDB.insertMessage(message);	// message not a duplicate
-			session.setAttribute("lastRecNo", idReturned);		// save newly inserted message id for next iteration
+			List<Message> reversedMessages = MessageDB.getMessagesAscending();
+			request.setAttribute("reversedMessages", reversedMessages);
+			url = "/reversedMessages.jsp";
 		}
 		
-		List<Message> messages = MessageDB.getMessages();
 		
-		request.setAttribute("messages", messages);
+		else if (action.equals("original"))
+		{
+			Message message = new Message();
+			boolean isDuplicate = false;
+			url = "/displayMessages.jsp";
+			String name = null;
+			String messageText = null;
+			Date date = new Date();
+			Timestamp postTime = new Timestamp(date.getTime());
+			
+			name = request.getParameter("username");
+			messageText = request.getParameter("messageContent");
+			
+			String path = request.getPathInfo();
+			
+			message.setUsername(name);
+			message.setMessage(messageText);
+			message.setPostingTime(postTime);
+			
+			if(session.getAttribute("lastRecNo") != null)
+			{
+				long testLong = (long)session.getAttribute("lastRecNo");
+				System.out.println("Value of last rec ID : " + testLong);
+			}
+			
+			if(session.getAttribute("lastRecNo") != null)
+			{
+				Message lastMessage = MessageDB.getMessageById((long)session.getAttribute("lastRecNo"));
+				
+				if((lastMessage.getUsername().equals(message.getUsername())) && (lastMessage.getMessage().equals(message.getMessage())))
+				{
+					isDuplicate = true;				
+				}
+			}
+			
+			// insert created message object only if it is not a duplicate
+			if (!isDuplicate)
+			{
+				long idReturned = MessageDB.insertMessage(message);	// message not a duplicate
+				session.setAttribute("lastRecNo", idReturned);		// save newly inserted message id for next iteration
+			}
+			
+			List<Message> messages = MessageDB.getMessages();
+			
+			request.setAttribute("messages", messages);
+		}
 		
 		getServletContext().getRequestDispatcher(url).forward(request, response);
 	}
